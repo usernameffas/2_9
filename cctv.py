@@ -1,14 +1,21 @@
 import os
 import zipfile
-from tkinter import Tk, Label, PhotoImage
+from tkinter import Tk, Label
+from PIL import Image, ImageTk
 
 class MasImageHelper:
+    '''
+    이미지 폴더를 관리하며,
+    현재 이미지 인덱스를 유지하고,
+    다음/이전 이미지 경로를 반환하는 헬퍼 클래스
+    '''
     def __init__(self, folder_path):
         self.folder_path = folder_path
+        # 지원되는 이미지 확장자만 필터링해 정렬
         self.images = sorted([f for f in os.listdir(folder_path)
-                              if f.lower().endswith(('.png', '.gif', '.ppm', '.pgm'))])
+                              if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.ppm', '.pgm'))])
         self.index = 0
-        self.photo = None
+        self.photo = None  # tkinter에서 이미지 유지용 변수
 
     def get_current_image_path(self):
         if self.images:
@@ -28,6 +35,10 @@ class MasImageHelper:
         return None
 
 def extract_zip(zip_path, extract_to):
+    '''
+    CCTV.zip을 압축 해제하여 extract_to 폴더로 만든다.
+    폴더가 이미 있으면 재압축 해제 하지 않음.
+    '''
     if not os.path.exists(extract_to):
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_to)
@@ -39,18 +50,21 @@ def main():
     # 압축 해제
     extract_zip(zip_path, extract_folder)
 
-    # 이미지 헬퍼 초기화
+    # 이미지 폴더 내 이미지를 관리하는 클래스 초기화
     img_helper = MasImageHelper(extract_folder)
 
-    # Tkinter 윈도우 생성
+    # Tkinter 윈도우 및 설정
     root = Tk()
     root.title('CCTV Image Viewer')
+    root.geometry('800x600')  # 윈도우 크기 지정
 
     label = Label(root)
     label.pack()
 
     def show_image(img_path):
-        img_helper.photo = PhotoImage(file=img_path)
+        print(f'현재 이미지 표시: {img_path}')  # 디버깅용 출력
+        img = Image.open(img_path)
+        img_helper.photo = ImageTk.PhotoImage(img)
         label.config(image=img_helper.photo)
 
     def on_key(event):
@@ -63,14 +77,15 @@ def main():
             if img_path:
                 show_image(img_path)
 
+    # 키보드 이벤트 바인딩
     root.bind('<Key>', on_key)
 
-    # 첫번째 이미지 보여주기
+    # 첫 이미지 출력
     first_img = img_helper.get_current_image_path()
     if first_img:
         show_image(first_img)
     else:
-        label.config(text='No images found')
+        label.config(text='이미지를 찾을 수 없습니다.')
 
     root.mainloop()
 
